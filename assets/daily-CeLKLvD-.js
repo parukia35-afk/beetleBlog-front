@@ -1,0 +1,1 @@
+import{bj as i}from"./index-CDYeyE_3.js";const{api:r,authApi:a}=i(),y={fetchDaily(){return r.get("/daily/")},createDaily(e){return a.post("/daily/",e)},updateDaily(e,t){return a.patch(`/daily/${e}`,t)},removeDaily(e){return a.delete(`/daily/${e}`)}};export{y as s};

@@ -1,1 +1,0 @@
-import{c3 as r,cg as c}from"./index-Dy6tUluQ.js";const o={fetchProducts(){return c.get("/product/")},fetchAllProducts(){return r.get("/product/all")},createProduct(t){return r.post("/product/",t)},updateProduct(t,e){return r.patch(`/product/${t}`,e)},deleteProduct(t){return r.delete(`/product/${t}`)}};export{o as s};
