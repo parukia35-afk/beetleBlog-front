@@ -112,6 +112,7 @@
 <script setup>
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
+import serviceRecord from '@/services/record'
 import CommentSection from '@/components/CommentSection.vue'
 
 // 紀錄尺寸補零函式
@@ -203,7 +204,7 @@ const rawBekuwaRecords = ref([])
 // 1. 從後端抓BekuwaRecord資料
 async function fetchRecords() {
   try {
-    const response = await axios.get('http://localhost:4000/record/')
+    const response = await serviceRecord.fetchRecords()
     rawBekuwaRecords.value = response.data.result
   } catch (error) {
     console.log('資料抓取失敗', error)
