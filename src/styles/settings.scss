@@ -1,0 +1,34 @@
+/**
+ * src/styles/settings.scss
+ *
+ * Configures SASS variables and Vuetify overwrites
+ */
+
+// https://vuetifyjs.com/features/sass-variables/`
+// @use 'vuetify/settings' with (
+//   $color-pack: false
+// );
+
+// 引入 Sass 的字串處理模組
+@use 'sass:string';
+
+@use 'vuetify/settings' with (
+  // 試試看 Bungee，這款字體全是粗體大寫塊狀
+  $body-font-family: string.unquote('"Open Sans", "TaipeiSansTC", sans-serif'),
+  $heading-font-family: string.unquote('"Space Grotesk", "TaipeiSansTC", sans-serif')
+);
+/* 台北黑點regular */
+@font-face {
+  font-family: 'TaipeiSansTC';
+  src: url('@/assets/fonts/TaipeiSansTCBeta-Regular.woff2') format('woff2');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+}
+
+/* 台北黑體bold */
+@font-face {
+  font-family: 'TaipeiSansTC';
+  src: url('@/assets/fonts/TaipeiSansTCBeta-Bold.woff2') format('woff2');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+}
