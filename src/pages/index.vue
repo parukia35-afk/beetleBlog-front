@@ -56,9 +56,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import serviceArticle from '@/services/article'
-import caresoul_4 from '../assets/輪4.JPG'
-import caresoul_5 from '../assets/輪5.JPG'
-import caresoul_7 from '../assets/輪7.JPG'
+import caresoul_4 from '../assets/輪4.jpg'
+import caresoul_5 from '../assets/輪5.jpg'
+import caresoul_7 from '../assets/輪7.jpg'
 
 const slides = [
   {
