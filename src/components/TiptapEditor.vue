@@ -339,6 +339,7 @@ watch(
     overflow-y: auto;
     .ProseMirror {
       outline: none;
+      color: black;
       p {
         margin-bottom: 0.5em;
       }

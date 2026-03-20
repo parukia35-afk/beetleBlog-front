@@ -265,7 +265,7 @@ const submit = async () => {
     } else {
       await serviceProduct.createProduct(fd)
     }
-    await fetchProducts() // 重新拉取最新資料
+    await fetchAllProducts() // 重新拉取最新資料
     dialog.value = false
   } catch (error) {
     snackbar.showMessage(error.response?.data?.message || '儲存失敗')
@@ -278,7 +278,8 @@ const deleteItem = async (item) => {
   if (confirm(`確定要刪除商品 ${item.name} 嗎？`)) {
     try {
       await serviceProduct.deleteProduct(item._id)
-      await fetchProducts()
+      await fetchAllProducts()
+      snackbar.showMessage('刪除成功')
     } catch (error) {
       snackbar.showMessage('刪除失敗')
     }
