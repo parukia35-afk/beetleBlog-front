@@ -18,7 +18,15 @@
     <v-card class="bg-secondary py-4 px-4 ma-4 ma-lg-16" rounded="xl">
       <div class="text-h6 text-md-h4 font-weight-bold my-4 mx-4 text-left">最新文章</div>
       <v-row>
+        <template v-if="isFetching">
+          <v-col v-for="i in 5" :key="i" cols="12" sm="6" md="4" class="custom-col-5">
+            <v-card elevation="5" class="rounded-xl">
+              <v-skeleton-loader type="image, article, chip"></v-skeleton-loader>
+            </v-card>
+          </v-col>
+        </template>
         <v-col
+          v-else
           v-for="article in latestArticles"
           :key="article._id"
           cols="12"
@@ -44,6 +52,7 @@
               <v-spacer />
               <div class="text-caption text-grey">
                 {{ new Date(article.createdAt).toLocaleDateString() }}
+                
               </div>
             </v-card-actions>
           </v-card>
@@ -77,9 +86,11 @@ const slides = [
 ]
 
 const latestArticles = ref([])
+const isFetching = ref(true)
 
 const fetchLatest = async () => {
   try {
+    isFetching.value = true
     const { data } = await serviceArticle.getPublishedArticles()
 
     // 💡 邏輯：先按 createdAt 排序（由新到舊），再取前 5 筆
@@ -88,6 +99,8 @@ const fetchLatest = async () => {
       .slice(0, 5) // 只要前 5 篇
   } catch (error) {
     console.error('抓取首頁文章失敗', error)
+  } finally {
+    isFetching.value = false
   }
 }
 

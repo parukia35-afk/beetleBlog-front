@@ -1,6 +1,7 @@
 <template>
   <v-container class="py-8">
     <v-row>
+      <!-- 側邊欄 -->
       <v-col cols="12" md="2">
         <v-card border class="pa-4 rounded-xl" flat>
           <div class="text-subtitle-1 font-weight-bold mb-4">
@@ -19,8 +20,9 @@
           </v-list>
         </v-card>
       </v-col>
-
+      <!-- 主內容 -->
       <v-col cols="12" md="10">
+        <!-- 搜尋列 -->
         <v-text-field
           v-model="search"
           class="mb-6"
@@ -31,8 +33,25 @@
           variant="outlined"
           clearable
         />
+        <!-- 文章總覽 -->
+        <v-row v-if="isFetching">
+          <v-col v-for="i in 4" :key="i" cols="12">
+            <v-card class="d-flex flex-column flex-sm-row rounded-xl overflow-hidden" border flat>
+              <v-skeleton-loader
+                width="300"
+                height="200"
+                type="image"
+                class="flex-shrink-0 mx-auto mx-sm-0"
+              ></v-skeleton-loader>
 
-        <v-row v-if="filteredArticles.length > 0">
+              <div class="pa-6 flex-grow-1 d-flex flex-column justify-center">
+                <v-skeleton-loader type="article"></v-skeleton-loader>
+              </div>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-row v-else-if="filteredArticles.length > 0">
           <v-col v-for="article in filteredArticles" :key="article._id" cols="12">
             <v-card
               border
@@ -114,13 +133,18 @@ const selectedCategory = ref('所有文章')
 const search = ref('')
 const articles = ref([])
 
+const isFetching = ref(true)
+
 // 💡 獲取活數據
 const fetchArticles = async () => {
   try {
+    isFetching.value = true
     const { data } = await serviceArticle.getPublishedArticles()
     articles.value = data.result
   } catch (error) {
     console.error('無法讀取文章列表')
+  } finally {
+    isFetching.value = false
   }
 }
 
