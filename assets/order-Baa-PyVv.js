@@ -1,0 +1,1 @@
+import{c3 as e}from"./index-Pr89L4YJ.js";const o={createOrder(r){return e.post("/order/",r)},getAllOrders(){return e.get("/order/")},updateStatus(r,t){return e.patch(`/order/${r}`,t)},getMyOrders(r){return e.get(`/order/${r}`)}};export{o as s};
