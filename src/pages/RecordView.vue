@@ -4,6 +4,7 @@
     style="max-width: 1200px"
     class="pb-15 mt-md-16 mt-8"
   >
+    <!-- 標題 -->
     <v-row class="mb-8 mb-md-12">
       <v-col class="text-center">
         <h1
@@ -16,8 +17,23 @@
         <v-divider class="mx-auto mt-4" width="100" thickness="4" color="primary"></v-divider>
       </v-col>
     </v-row>
-
-    <div v-for="groupObj in genusClassification" :key="groupObj.genusName" class="mb-10 mb-md-16">
+    <!-- 表格 -->
+      <!-- 骨架屏 -->
+    <template v-if="isFetching">
+      <div v-for="n in 4" :key="n" class="mb-10 mb-md-16">
+        <v-skeleton-loader type="heading" class="rounded-t-xl pa-2" color="grey-lighten-2" />
+        <v-card border class="rounded-b-xl overflow-hidden">
+          <v-skeleton-loader
+            v-for="row in 5"
+            :key="row"
+            type="table-row"
+            class="border-b"
+          />
+        </v-card>
+      </div>
+    </template>
+      <!-- 真實表格 -->
+    <div v-else v-for="groupObj in genusClassification" :key="groupObj.genusName" class="mb-10 mb-md-16">
       <v-sheet
         :style="{ backgroundColor: groupObj.bgColor, color: groupObj.textColor }"
         :class="$vuetify.display.xs ? 'pa-3' : 'pa-5'"
@@ -201,13 +217,18 @@ const GENUS_CONFIG = [
 
 const rawBekuwaRecords = ref([])
 
+const isFetching = ref(true)
+
 // 1. 從後端抓BekuwaRecord資料
 async function fetchRecords() {
   try {
+    isFetching.value = true
     const response = await serviceRecord.fetchRecords()
     rawBekuwaRecords.value = response.data.result
   } catch (error) {
     console.log('資料抓取失敗', error)
+  } finally {
+    isFetching.value = false
   }
 }
 
@@ -268,7 +289,8 @@ onMounted(fetchRecords)
 /* 讓按鈕在滑鼠移入時有一點向上彈跳的感覺 */
 .floating-comment-btn {
   transition: transform 0.3s ease;
-  z-index: 99; /* 確保在表格上方 */
+  z-index: 99;
+  /* 確保在表格上方 */
 }
 
 .floating-comment-btn:hover {
@@ -282,7 +304,8 @@ onMounted(fetchRecords)
 }
 
 .floating-comment-btn:hover {
-  transform: scale(1.1); /* 移入時稍微放大 */
+  transform: scale(1.1);
+  /* 移入時稍微放大 */
   transition: 0.3s;
 }
 
@@ -292,10 +315,12 @@ onMounted(fetchRecords)
     transform: scale(0);
     opacity: 0;
   }
+
   60% {
     transform: scale(1.1);
     opacity: 1;
   }
+
   100% {
     transform: scale(1);
   }
@@ -306,13 +331,16 @@ onMounted(fetchRecords)
   0% {
     box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 15px rgba(var(--v-theme-primary), 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0);
   }
 }
+
 /* 原有的表格樣式... */
 </style>
 
