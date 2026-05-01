@@ -7,20 +7,22 @@
 
     <v-row justify="center">
       <v-col cols="12" md="8">
-        <v-skeleton-loader v-if="loading" type="card, card" />
+        <!-- 骨架屏 -->
+        <template v-if="isFetching">
+          <v-card  v-for="n in 4" :key="n" flat border class="mb-8 pa-4">
+            <div class="d-flex flex-column flex-sm-row gap-4 align-center align-sm-start">
+              <v-skeleton-loader width="300" height="220" type="image" class="mx-auto mx-sm-0 flex-shrink-0"></v-skeleton-loader>
+              <v-skeleton-loader type="paragraph,paragraph" class="flex-grow-1 skeleton-text-width"></v-skeleton-loader>
+            </div>
+          </v-card>
+        </template>
 
         <div v-else-if="posts.length === 0" class="text-center py-10">
           <v-icon size="64" color="grey-lighten-1">mdi-comment-text-outline</v-icon>
           <p class="text-primary mt-4">目前還沒有日常分享，過陣子再來看看吧！</p>
         </div>
 
-        <v-card
-          v-for="post in posts"
-          :key="post._id"
-          border
-          class="mb-8 pa-4 hover-card"
-          flat
-        >
+        <v-card v-else v-for="post in posts" :key="post._id" border class="mb-8 pa-4 hover-card" flat>
           <div class="d-flex flex-column flex-sm-row gap-4">
             <v-img
               class="flex-shrink-0"
@@ -59,17 +61,18 @@ import { ref, onMounted } from 'vue'
 import serviceDaily from '@/services/daily'
 
 const posts = ref([])
-const loading = ref(true)
+const isFetching = ref(true)
 
 const fetchPosts = async () => {
-  loading.value = true
   try {
+    isFetching.value = true
     const { data } = await serviceDaily.fetchDaily()
     posts.value = data.result
   } catch (error) {
     console.error('抓取日常失敗:', error)
+  } finally {
+    isFetching.value = false
   }
-  loading.value = false
 }
 
 const formatDate = (dateStr) => {
@@ -95,6 +98,22 @@ onMounted(fetchPosts)
   transform: translateY(-4px);
   border-color: var(--v-primary-base) !important;
 }
+
+.skeleton-text-width {
+  width: 100%;
+  max-width: 300px; 
+}
+
+@media (min-width: 600px) { 
+  .skeleton-text-width {
+    max-width: none;
+  }
+}
+
+:deep(.v-skeleton-loader__image) {
+  height: 220px !important; /* 強制與你設定的高度一致 */
+}
+
 </style>
 
 <route lang="yaml">
