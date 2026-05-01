@@ -1,6 +1,7 @@
 <template>
   <v-container class="py-8">
     <v-row>
+      <!-- 商品分類列表 -->
       <v-col cols="12" md="3">
         <v-card border class="pa-4 rounded-lg" flat>
           <div class="text-subtitle-1 font-weight-bold mb-4">商品分類</div>
@@ -18,14 +19,20 @@
           </v-list>
         </v-card>
       </v-col>
-
+      <!-- 商品一覽 -->
       <v-col cols="12" md="9">
-        <v-row v-if="loading">
+        <!-- 骨架屏 -->
+        <v-row v-if="isFetching">
           <v-col v-for="n in 6" :key="n" cols="12" md="4" sm="6">
-            <v-skeleton-loader type="card" />
+            <v-card border class="h-100 d-flex flex-column rounded-lg">
+              <v-skeleton-loader height="200" type="image"></v-skeleton-loader>
+              <v-skeleton-loader type="article"></v-skeleton-loader>
+              <v-divider></v-divider>
+              <v-skeleton-loader type="heading"></v-skeleton-loader>
+            </v-card>
           </v-col>
         </v-row>
-
+        <!-- 真實商品資料 -->
         <v-row v-else-if="filteredProducts.length > 0">
           <v-col v-for="product in filteredProducts" :key="product._id" cols="12" md="4" sm="6">
             <v-card border class="h-100 d-flex flex-column rounded-lg" flat hover>
@@ -91,7 +98,7 @@ const snackbar = useSnackbarStore()
 
 // --- 狀態定義 ---
 const products = ref([])
-const loading = ref(true)
+const isFetching = ref(true)
 const category = ref('所有商品')
 
 // 注意：這裡的名稱要對應你資料庫 enum 的定義
@@ -101,12 +108,14 @@ const filterItems = ['所有商品', '成蟲', '幼蟲', '耗材 | 工具', '其
 const fetchProducts = async () => {
   loading.value = true
   try {
+    isFetching.value = true
     const { data } = await serviceProduct.fetchProducts()
     products.value = data.result
   } catch (error) {
     console.error('抓取商品失敗:', error)
+  } finally {
+    isFetching.value = false
   }
-  loading.value = false
 }
 
 // --- 篩選邏輯 ---
@@ -123,6 +132,12 @@ const addToCart = (product) => {
 
 onMounted(fetchProducts)
 </script>
+
+<style scoped>
+:deep(.v-skeleton-loader__image) {
+  height: 200px !important; /* 強制與你設定的高度一致 */
+}
+</style>
 
 <route lang="yaml">
 path: /shop

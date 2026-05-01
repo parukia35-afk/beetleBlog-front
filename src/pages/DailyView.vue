@@ -21,7 +21,7 @@
           <v-icon size="64" color="grey-lighten-1">mdi-comment-text-outline</v-icon>
           <p class="text-primary mt-4">目前還沒有日常分享，過陣子再來看看吧！</p>
         </div>
-
+        <!-- 真實短文資料 -->
         <v-card v-else v-for="post in posts" :key="post._id" border class="mb-8 pa-4 hover-card" flat>
           <div class="d-flex flex-column flex-sm-row gap-4">
             <v-img
