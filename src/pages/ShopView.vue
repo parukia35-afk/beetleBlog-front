@@ -39,7 +39,10 @@
               <v-img
                 cover
                 height="200"
+                width="100%"
+                style="min-height: 200px;"
                 :src="product.imageUrl || 'https://placehold.co/400x300?text=No+Image'"
+                class="flex-shrink-0 fixed-image-height"
               >
                 <template #placeholder>
                   <v-row align="center" class="fill-height ma-0" justify="center">
@@ -49,14 +52,18 @@
               </v-img>
 
               <v-card-item>
-                <v-card-title class="text-body-1 font-weight-bold">{{ product.name }}</v-card-title>
+                <v-card-title class="text-body-1 font-weight-bold line-clamp-1">{{
+                  product.name
+                }}</v-card-title>
                 <v-card-subtitle class="text-primary font-weight-bold">
                   NT$ {{ product.price }}
                 </v-card-subtitle>
               </v-card-item>
 
               <v-card-text class="text-caption text-grey-darken-1 flex-grow-1">
-                {{ product.description }}
+                <div class="line-clamp-3">
+                  {{ product.description }}
+                </div>
               </v-card-text>
 
               <v-divider />
@@ -106,7 +113,6 @@ const filterItems = ['所有商品', '成蟲', '幼蟲', '耗材 | 工具', '其
 
 // --- 資料獲取 ---
 const fetchProducts = async () => {
-  loading.value = true
   try {
     isFetching.value = true
     const { data } = await serviceProduct.fetchProducts()
@@ -134,9 +140,38 @@ onMounted(fetchProducts)
 </script>
 
 <style scoped>
+/* 鎖定圖片骨架屏中 Shimmer Effect 的實際區塊(Skeleton Image Bone)的高度為200px */
 :deep(.v-skeleton-loader__image) {
-  height: 200px !important; /* 強制與你設定的高度一致 */
+  height: 200px !important;
 }
+
+/* 限制描述文字最多 3 行 */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 想要幾行就改幾 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 限制商品名稱長度為 1 行 */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 強制讓真實圖片的高度也鎖死在 200px，不准它根據比例縮放 */
+:deep(.v-img__img--cover) {
+  height: 200px !important;
+}
+
+.fixed-image-height {
+  height: 200px !important;
+  min-height: 200px !important;
+  max-height: 200px !important;
+}
+
 </style>
 
 <route lang="yaml">
