@@ -18,6 +18,7 @@
     <v-card class="bg-secondary py-4 px-4 ma-4 ma-lg-16" rounded="xl">
       <div class="text-h6 text-md-h4 font-weight-bold my-4 mx-4 text-left">最新文章</div>
       <v-row>
+        <!-- 骨架屏 -->
         <template v-if="isFetching">
           <v-col v-for="i in 5" :key="i" cols="12" sm="6" md="4" class="custom-col-5">
             <v-card elevation="5" class="rounded-xl">
@@ -25,6 +26,42 @@
             </v-card>
           </v-col>
         </template>
+        <!-- 連線異常 -->
+        <v-col v-else-if="fetchError" cols="12">
+          <v-empty-state
+            icon="mdi-server-network-off"
+            title="伺服器暫時失去回應"
+            text="我們無法取得文章列表，請檢查您的網路連線或稍後再試。"
+            action-text="重新嘗試"
+            @click:action="fetchLatest"
+          ></v-empty-state>
+        </v-col>
+        <!-- 空資料 -->
+        <v-col
+          v-else-if="latestArticles.length === 0"
+          cols="12"
+          class="d-flex align-center justify-center"
+        >
+          <v-empty-state
+            icon="mdi-book-open-variant"
+            title="新家裝潢中，文章陸續搬運中"
+            text="目前這裡還沒有最新文章，但您可以先到我的原始部落格探索甲蟲世界。"
+          >
+            <template #actions>
+              <v-btn
+                color="primary"
+                variant="elevated"
+                rounded="pill"
+                prepend-icon="mdi-launch"
+                href="https://parukiabeetle.wordpress.com/"
+                target="_blank"
+              >
+                前往原始部落格
+              </v-btn>
+            </template>
+          </v-empty-state>
+        </v-col>
+        <!-- 真實資料 -->
         <v-col
           v-else
           v-for="article in latestArticles"
@@ -52,7 +89,6 @@
               <v-spacer />
               <div class="text-caption text-grey">
                 {{ new Date(article.createdAt).toLocaleDateString() }}
-                
               </div>
             </v-card-actions>
           </v-card>
@@ -65,6 +101,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import serviceArticle from '@/services/article'
+
 import caresoul_4 from '../assets/輪4.jpg'
 import caresoul_5 from '../assets/輪5.jpg'
 import caresoul_7 from '../assets/輪7.jpg'
@@ -87,17 +124,20 @@ const slides = [
 
 const latestArticles = ref([])
 const isFetching = ref(true)
+const fetchError = ref(false)
 
 const fetchLatest = async () => {
   try {
     isFetching.value = true
+    fetchError.value = false
     const { data } = await serviceArticle.getPublishedArticles()
 
-    // 💡 邏輯：先按 createdAt 排序（由新到舊），再取前 5 筆
+    // 邏輯：先按 createdAt 排序（由新到舊），再取前 5 筆
     latestArticles.value = (data.result || [])
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5) // 只要前 5 篇
   } catch (error) {
+    fetchError.value = true
     console.error('抓取首頁文章失敗', error)
   } finally {
     isFetching.value = false
@@ -108,7 +148,7 @@ onMounted(fetchLatest)
 </script>
 
 <style scoped>
-/* 💡 實現 5 欄位的 CSS 技巧 */
+/* 實現 5 欄位的 CSS 技巧 */
 @media (min-width: 1904px) {
   /* Vuetify xl 斷點 */
   .custom-col-5 {
