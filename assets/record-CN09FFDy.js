@@ -1,1 +1,0 @@
-import{bk as c}from"./index-DMXkZtws.js";const{api:o,authApi:r}=c(),s={fetchRecords(){return o.get("/record/")},createRecord(e){return r.post("/record/",e)},updateRecord(e,t){return r.patch(`/record/${e}`,t)},deleteRecord(e){return r.delete(`/record/${e}`)}};export{s};
