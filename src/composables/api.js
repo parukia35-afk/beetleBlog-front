@@ -17,7 +17,7 @@ authApi.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  res => res.data,
+  res => res,
   err => {
     const snackbar = useSnackbarStore()
     const errorMsg = err.response?.data?.message || '網路連線異常'
