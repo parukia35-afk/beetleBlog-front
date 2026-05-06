@@ -34,6 +34,7 @@
           clearable
         />
         <!-- 文章總覽 -->
+        <!-- 骨架屏 -->
         <v-row v-if="isFetching">
           <v-col v-for="i in 4" :key="i" cols="12">
             <v-card class="d-flex flex-column flex-sm-row rounded-xl overflow-hidden" border flat>
@@ -50,7 +51,17 @@
             </v-card>
           </v-col>
         </v-row>
-
+        <!-- 連線異常 -->
+        <AppEmptyState v-else-if="fetchError" variant="error" @action="fetchArticles" />
+        <!-- 空資料 -->
+        <AppEmptyState v-else-if="articles.length === 0" variant="empty">
+          <template #actions>
+            <v-btn color="primary" href="https://parukiabeetle.wordpress.com/" target="_blank">
+              前往原始部落格
+            </v-btn>
+          </template>
+        </AppEmptyState>
+        <!-- 真實資料 -->
         <v-row v-else-if="filteredArticles.length > 0">
           <v-col v-for="article in filteredArticles" :key="article._id" cols="12">
             <v-card
@@ -134,14 +145,16 @@ const search = ref('')
 const articles = ref([])
 
 const isFetching = ref(true)
+const fetchError = ref(false)
 
-// 💡 獲取活數據
 const fetchArticles = async () => {
   try {
     isFetching.value = true
+    fetchError.value = false
     const { data } = await serviceArticle.getPublishedArticles()
     articles.value = data.result
   } catch (error) {
+    fetchError.value = true
     console.error('無法讀取文章列表')
   } finally {
     isFetching.value = false

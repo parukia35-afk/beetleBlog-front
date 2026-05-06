@@ -32,6 +32,10 @@
         </v-card>
       </div>
     </template>
+      <!-- 連線異常 -->
+    <AppEmptyState v-else-if="fetchError" variant="error" @action="fetchRecords"></AppEmptyState>
+      <!-- 空資料 -->
+    <AppEmptyState v-else-if="genusClassification.length === 0" variant="empty"></AppEmptyState>
       <!-- 真實表格 -->
     <div v-else v-for="groupObj in genusClassification" :key="groupObj.genusName" class="mb-10 mb-md-16">
       <v-sheet
@@ -126,7 +130,6 @@
 </template>
 
 <script setup>
-import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import serviceRecord from '@/services/record'
 import CommentSection from '@/components/CommentSection.vue'
@@ -218,14 +221,17 @@ const GENUS_CONFIG = [
 const rawBekuwaRecords = ref([])
 
 const isFetching = ref(true)
+const fetchError = ref(false)
 
 // 1. 從後端抓BekuwaRecord資料
 async function fetchRecords() {
   try {
     isFetching.value = true
+    fetchError.value = false
     const response = await serviceRecord.fetchRecords()
     rawBekuwaRecords.value = response.data.result
   } catch (error) {
+    fetchError.value = true
     console.log('資料抓取失敗', error)
   } finally {
     isFetching.value = false

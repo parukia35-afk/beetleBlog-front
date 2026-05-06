@@ -16,11 +16,10 @@
             </div>
           </v-card>
         </template>
-
-        <div v-else-if="posts.length === 0" class="text-center py-10">
-          <v-icon size="64" color="grey-lighten-1">mdi-comment-text-outline</v-icon>
-          <p class="text-primary mt-4">目前還沒有日常分享，過陣子再來看看吧！</p>
-        </div>
+        <!-- 連線異常 -->
+        <AppEmptyState v-else-if="fetchError" variant="error" @action="fetchPosts"></AppEmptyState>
+        <!-- 空資料 -->
+        <AppEmptyState v-else-if="posts.length === 0" variant="empty"></AppEmptyState>
         <!-- 真實短文資料 -->
         <v-card v-else v-for="post in posts" :key="post._id" border class="mb-8 pa-4 hover-card" flat>
           <div class="d-flex flex-column flex-sm-row gap-4">
@@ -62,13 +61,16 @@ import serviceDaily from '@/services/daily'
 
 const posts = ref([])
 const isFetching = ref(true)
+const fetchError = ref(false)
 
 const fetchPosts = async () => {
   try {
     isFetching.value = true
+    fetchError.value = false
     const { data } = await serviceDaily.fetchDaily()
     posts.value = data.result
   } catch (error) {
+    fetchError.value = true
     console.error('抓取日常失敗:', error)
   } finally {
     isFetching.value = false

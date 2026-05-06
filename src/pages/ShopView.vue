@@ -32,6 +32,10 @@
             </v-card>
           </v-col>
         </v-row>
+        <!-- 連線異常 -->
+        <AppEmptyState v-else-if="fetchError" variant="error" @action="fetchProducts" />
+        <!-- 空資料 -->
+        <AppEmptyState v-else-if="products.length === 0" variant="empty" />
         <!-- 真實商品資料 -->
         <v-row v-else-if="filteredProducts.length > 0">
           <v-col v-for="product in filteredProducts" :key="product._id" cols="12" md="4" sm="6">
@@ -40,7 +44,7 @@
                 cover
                 height="200"
                 width="100%"
-                style="min-height: 200px;"
+                style="min-height: 200px"
                 :src="product.imageUrl || 'https://placehold.co/400x300?text=No+Image'"
                 class="flex-shrink-0 fixed-image-height"
               >
@@ -82,13 +86,14 @@
             </v-card>
           </v-col>
         </v-row>
-
-        <v-row v-else align="center" justify="center" class="py-16">
-          <v-col class="text-center">
-            <v-icon icon="mdi-package-variant" size="64" color="grey-lighten-1" />
-            <div class="text-grey mt-4">此分類目前沒有商品上架</div>
-          </v-col>
-        </v-row>
+        <!-- 篩選後沒結果 -->
+        <AppEmptyState v-else-if="filteredProducts.length === 0" variant="empty">
+          <template #icon>
+            <v-icon icon="mdi-package-variant" size="72" />
+          </template>
+          <template #title>此分類目前沒有商品</template>
+          <template #text>試試看其他分類？</template>
+        </AppEmptyState>
       </v-col>
     </v-row>
   </v-container>
@@ -106,6 +111,7 @@ const snackbar = useSnackbarStore()
 // --- 狀態定義 ---
 const products = ref([])
 const isFetching = ref(true)
+const fetchError = ref(false)
 const category = ref('所有商品')
 
 // 注意：這裡的名稱要對應你資料庫 enum 的定義
@@ -115,9 +121,11 @@ const filterItems = ['所有商品', '成蟲', '幼蟲', '耗材 | 工具', '其
 const fetchProducts = async () => {
   try {
     isFetching.value = true
+    fetchError.value = false
     const { data } = await serviceProduct.fetchProducts()
     products.value = data.result
   } catch (error) {
+    fetchError.value = true
     console.error('抓取商品失敗:', error)
   } finally {
     isFetching.value = false
@@ -171,7 +179,6 @@ onMounted(fetchProducts)
   min-height: 200px !important;
   max-height: 200px !important;
 }
-
 </style>
 
 <route lang="yaml">
