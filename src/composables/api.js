@@ -28,6 +28,18 @@ api.interceptors.response.use(
   }
 )
 
+authApi.interceptors.response.use(
+  res => res,
+  err => {
+    const snackbar = useSnackbarStore()
+    const errorMsg = err.response?.data?.message || '網路連線異常'
+
+    snackbar.showMessage(errorMsg,'error')
+
+    return Promise.reject(err)
+  }
+)
+
 export const useApi = () => {
   return { api, authApi }
 }
