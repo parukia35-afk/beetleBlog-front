@@ -27,39 +27,12 @@
           </v-col>
         </template>
         <!-- 連線異常 -->
-        <v-col v-else-if="fetchError" cols="12">
-          <v-empty-state
-            icon="mdi-server-network-off"
-            title="伺服器暫時失去回應"
-            text="我們無法取得文章列表，請檢查您的網路連線或稍後再試。"
-            action-text="重新嘗試"
-            @click:action="fetchLatest"
-          ></v-empty-state>
+        <v-col v-else-if="fetchError">
+          <AppEmptyState variant="error" @action="fetchLatest" />
         </v-col>
         <!-- 空資料 -->
-        <v-col
-          v-else-if="latestArticles.length === 0"
-          cols="12"
-          class="d-flex align-center justify-center"
-        >
-          <v-empty-state
-            icon="mdi-book-open-variant"
-            title="新家裝潢中，文章陸續搬運中"
-            text="目前這裡還沒有最新文章，但您可以先到我的原始部落格探索甲蟲世界。"
-          >
-            <template #actions>
-              <v-btn
-                color="primary"
-                variant="elevated"
-                rounded="pill"
-                prepend-icon="mdi-launch"
-                href="https://parukiabeetle.wordpress.com/"
-                target="_blank"
-              >
-                前往原始部落格
-              </v-btn>
-            </template>
-          </v-empty-state>
+        <v-col v-else-if="latestArticles.length === 0">
+          <AppEmptyState variant="empty" />
         </v-col>
         <!-- 真實資料 -->
         <v-col
