@@ -14,7 +14,7 @@
         >
       </v-card-title>
 
-      <v-data-table :headers="headers" :items="articles" :loading="loading">
+      <v-data-table :headers="headers" :items="articles" :loading="isFetching">
         <template #[`item.display`]="{ item }">
           <v-chip :color="item.display ? 'success' : 'grey'" size="small">
             {{ item.display ? '公開' : '隱藏' }}
@@ -23,7 +23,7 @@
 
         <template #[`item.actions`]="{ item }">
           <v-btn icon="mdi-pencil" variant="text" color="blue" @click="editArticle(item._id)" />
-          <v-btn icon="mdi-delete" variant="text" color="red" @click="removeArticle(item._id)" />
+          <v-btn icon="mdi-delete" variant="text" color="red" @click="deleteItem(item)" />
         </template>
       </v-data-table>
     </v-card>
@@ -38,7 +38,7 @@
       >
         <v-card-title class="bg-primary text-white pa-4 d-flex align-center">
           <v-icon icon="mdi-pen" class="mr-2" />
-          {{ form._id ? '正在編輯文章' : '撰寫新文章' }}
+          {{ editedId ? '正在編輯文章' : '撰寫新文章' }}
           <v-spacer />
           <v-btn icon="mdi-close" variant="text" @click="closeEditor" />
         </v-card-title>
@@ -118,10 +118,21 @@
           <v-switch v-model="form.display" label="公開文章" color="success" hide-details />
           <v-spacer />
           <v-btn variant="outlined" class="mr-4" @click="closeEditor">取消返回</v-btn>
-          <v-btn color="primary" size="large" width="150" @click="submit">儲存並發布</v-btn>
+          <v-btn color="primary" size="large" width="150" :loading="isSubmitting" @click="submit"
+            >儲存並發布</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-expand-transition>
+    <!-- 刪除確認彈窗 -->
+    <ConfirmDialog
+      v-model="deleteDialog"
+      title="確認刪除？"
+      message="確定要刪除這篇文章嗎？此動作無法復原。"
+      confirmColor="red"
+      :loading="isDeleting"
+      @confirm="confirmDelete"
+    />
   </v-container>
 </template>
 
@@ -133,12 +144,40 @@ import { useSnackbarStore } from '@/stores/snackbar'
 
 const snackbar = useSnackbarStore()
 
-const loading = ref(false)
-const showEditor = ref(false)
+// ====================靜態資料====================
+const headers = [
+  {
+    title: '日期',
+    key: 'createdAt',
+    width: '150px',
+    value: (item) => new Date(item.createdAt).toLocaleDateString()
+  },
+  { title: '分類', key: 'category', width: '120px' },
+  { title: '標題', key: 'title' },
+  { title: '狀態', key: 'display', align: 'center' },
+  { title: '操作', key: 'actions', align: 'end', sortable: false }
+]
 
+// ====================讀取====================
+const isFetching = ref(false)
 const articles = ref([])
+
+const fetchArticles = async () => {
+  isFetching.value = true
+  try {
+    const { data } = await serviceArticle.getAllArticles()
+    articles.value = data.result
+  } catch (error) {
+    snackbar.showMessage('無法載入文章列表', 'error')
+  } finally {
+    isFetching.value = false
+  }
+}
+// ====================新增/編輯====================
+const showEditor = ref(false)
+const editedId = ref(null)
+const isSubmitting = ref(false)
 const form = reactive({
-  _id: '',
   title: '',
   category: '飼育紀錄',
   isCompleted: '連載中',
@@ -149,37 +188,8 @@ const form = reactive({
   display: true
 })
 
-const headers = [
-  { title: '日期', key: 'createdAt', width: '150px', value: item => new Date(item.createdAt).toLocaleDateString() },
-  { title: '分類', key: 'category', width: '120px' },
-  { title: '標題', key: 'title' },
-  { title: '狀態', key: 'display', align: 'center' },
-  { title: '操作', key: 'actions', align: 'end', sortable: false }
-]
-
-// 讀取所有文章資料
-const fetchArticles = async () => {
-  try {
-    loading.value = true
-    const { data } = await serviceArticle.getAllArticles() 
-    articles.value = data.result
-  } catch (error) {
-    console.error(error)
-    snackbar.showMessage('無法載入文章列表', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 初始化新文章
-const initNewArticle = () => {
-  resetForm()
-  showEditor.value = true
-  scrollToEditor()
-}
-
 const resetForm = () => {
-  form._id = ''
+  editedId.value = null
   form.title = ''
   form.category = '飼育紀錄'
   form.isCompleted = '連載中'
@@ -190,19 +200,18 @@ const resetForm = () => {
   form.display = true
 }
 
-// 編輯文章
-const editArticle = async (id) => {
-  try {
-    const { data } = await serviceArticle.getByArticleId(id)
-    console.log(data.result)
-    Object.assign(form, data.result)
-    // 封面圖特殊處理：編輯時先設為舊網址
-    form.image = data.result.imageUrl 
-    showEditor.value = true
-    scrollToEditor()
-  } catch (error) {
-    snackbar.showMessage('讀取文章詳情失敗', 'error')
-  }
+// 螢幕自動下滑至編輯區
+const scrollToEditor = () => {
+  nextTick(() => {
+    document.getElementById('editor-section')?.scrollIntoView({ behavior: 'smooth' })
+  })
+}
+
+// 新增文章時將 form 初始化並讓頁面自動下滑至編輯區
+const initNewArticle = () => {
+  resetForm()
+  showEditor.value = true
+  scrollToEditor()
 }
 
 const closeEditor = () => {
@@ -210,15 +219,27 @@ const closeEditor = () => {
   resetForm()
 }
 
-const scrollToEditor = () => {
-  nextTick(() => {
-    document.getElementById('editor-section')?.scrollIntoView({ behavior: 'smooth' })
-  })
+// 編輯文章
+const editArticle = async (id) => {
+  try {
+    editedId.value = id
+    const { data } = await serviceArticle.getByArticleId(id)
+    const { title, category, isCompleted, aboutSpecies, description, content, display } =
+      data.result
+    Object.assign(form, {title, category, isCompleted, aboutSpecies, description, content, display})
+    // 封面圖特殊處理：編輯時先設為舊網址
+    form.image = data.result.imageUrl
+    showEditor.value = true
+    scrollToEditor()
+  } catch (error) {
+    snackbar.showMessage('讀取文章詳情失敗', 'error')
+  }
 }
 
 const submit = async () => {
   if (!form.title) return snackbar.showMessage('標題忘記寫囉！', 'error')
-  if (!form.content || form.content === '<p></p>') return snackbar.showMessage('內容至少寫一點吧！', 'error')
+  if (!form.content || form.content === '<p></p>')
+    return snackbar.showMessage('內容至少寫一點吧！', 'error')
 
   const fd = new FormData()
   fd.append('title', form.title)
@@ -229,7 +250,7 @@ const submit = async () => {
   fd.append('display', form.display)
 
   if (form.aboutSpecies && form.aboutSpecies.length > 0) {
-    form.aboutSpecies.forEach(tag => fd.append('aboutSpecies', tag))
+    form.aboutSpecies.forEach((tag) => fd.append('aboutSpecies', tag))
   }
 
   // 封面圖處理
@@ -238,9 +259,9 @@ const submit = async () => {
   }
 
   try {
-    loading.value = true
-    if (form._id) {
-      await serviceArticle.editArticle(form._id, fd)
+    isSubmitting.value = true
+    if (editedId.value) {
+      await serviceArticle.editArticle(editedId.value, fd)
       snackbar.showMessage('文章更新成功 🌿', 'success')
     } else {
       await serviceArticle.createArticle(fd)
@@ -248,27 +269,39 @@ const submit = async () => {
     }
 
     closeEditor()
-    fetchArticles() 
+    fetchArticles()
   } catch (error) {
     console.error('儲存文章出錯：', error)
     snackbar.showMessage(error.response?.data?.message || '儲存失敗', 'error')
   } finally {
-    loading.value = false
+    isSubmitting.value = false
   }
 }
 
-// 刪除文章
-const removeArticle = async (id) => {
-  if (!confirm('確定要刪除這篇文章嗎？此動作無法復原。')) return
-  
+// ====================刪除====================
+const deleteDialog = ref(false)
+const pendingDeleteId = ref(null)
+const isDeleting = ref(false)
+
+const deleteItem = (item) => {
+  pendingDeleteId.value = item._id
+  deleteDialog.value = true
+}
+
+const confirmDelete = async () => {
+  isDeleting.value = true
   try {
-    await serviceArticle.removeArticle(id)
+    await serviceArticle.removeArticle(pendingDeleteId.value)
     snackbar.showMessage('文章已刪除', 'success')
     fetchArticles()
+    deleteDialog.value = false
   } catch (error) {
     snackbar.showMessage('刪除失敗', 'error')
+  } finally {
+    isDeleting.value = false
   }
 }
+
 onMounted(fetchArticles)
 </script>
 
