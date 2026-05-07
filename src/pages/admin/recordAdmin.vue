@@ -29,7 +29,7 @@
             :headers="headers"
             :items="records"
             :search="search"
-            :loading="loading"
+            :loading="isFetching"
             hover
             class="record-table"
           >
@@ -130,12 +130,21 @@
         <v-card-actions class="pa-6 pt-0">
           <v-spacer />
           <v-btn variant="text" @click="dialog = false">取消</v-btn>
-          <v-btn color="primary" variant="flat" :loading="submitting" @click="submit">
+          <v-btn color="primary" variant="flat" :loading="isSubmitting" @click="submit">
             {{ editedId ? '更新資料' : '確認新增' }}
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <!-- 刪除確認彈窗 -->
+    <ConfirmDialog
+      v-model="deleteDialog"
+      title="確認刪除？"
+      :message="`確定要刪除 ${pendingDeleteItem?.commonName} (${pendingDeleteItem?.scientificName}) 的紀錄嗎？`"
+      confirmColor="red"
+      :loading="isDeleting"
+      @confirm="confirmDelete"
+    />
   </v-container>
 </template>
 
@@ -147,11 +156,29 @@ import { useSnackbarStore } from '@/stores/snackbar'
 const snackbar = useSnackbarStore()
 
 // 狀態管理
-const loading = ref(false)
-const submitting = ref(false)
+const isFetching = ref(false)
+const fetchError = ref(false)
+
+const records = ref([])
+
+// 1. 取得資料
+const fetchRecords = async () => {
+  isFetching.value = true
+  fetchError.value = false
+  try {
+    const { data } = await serviceRecord.fetchRecords()
+    records.value = data.result
+  } catch (error) {
+    fetchError.value = true
+    console.log('紀錄載入失敗', error)
+  } finally {
+    isFetching.value = false
+  }
+}
+
+const isSubmitting = ref(false)
 const dialog = ref(false)
 const search = ref('')
-const records = ref([])
 const editedId = ref(null)
 const formRef = ref(null)
 
@@ -179,23 +206,21 @@ const initialForm = {
 }
 const form = reactive({ ...initialForm })
 
-// 1. 取得資料
-const fetchRecords = async () => {
-  loading.value = true
-  try {
-    const { data } = await serviceRecord.fetchRecords()
-    records.value = data.result
-  } catch (error) {
-    snackbar.showMessage('資料抓取失敗')
-  }
-  loading.value = false
-}
-
 // 2. 開啟彈窗 (新增/編輯)
 const openDialog = (item) => {
   if (item) {
     editedId.value = item._id
-    Object.assign(form, item) // 把資料填入表單
+    const { genus, commonName, scientificName, captiveRecord, wildRecord, japaneseName, year } =
+      item
+    Object.assign(form, {
+      genus,
+      commonName,
+      scientificName,
+      captiveRecord,
+      wildRecord,
+      japaneseName,
+      year
+    })
   } else {
     editedId.value = null
     Object.assign(form, initialForm) // 重置表單
@@ -209,7 +234,7 @@ const submit = async () => {
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
-  submitting.value = true // submitting 與新增或更新確認的按鈕的 loading 綁定，避免按下去時資料還在傳輸像是當機而造成使用者狂按，送出好幾筆重複資料。當 loading 為true時，按鈕會轉圈圈且不能按。
+  isSubmitting.value = true // submitting 與新增或更新確認的按鈕的 loading 綁定，避免按下去時資料還在傳輸像是當機而造成使用者狂按，送出好幾筆重複資料。當 loading 為true時，按鈕會轉圈圈且不能按。
   try {
     if (editedId.value) {
       await serviceRecord.updateRecord(editedId.value, form)
@@ -220,19 +245,32 @@ const submit = async () => {
     dialog.value = false
   } catch (error) {
     snackbar.showMessage(error.response?.data?.message || '操作失敗')
+  } finally {
+    isSubmitting.value = false
   }
-  submitting.value = false
 }
 
 // 4. 刪除
-const deleteItem = async (item) => {
-  if (confirm(`確定要刪除 ${item.commonName || item.scientificName} 的紀錄嗎？`)) {
-    try {
-      await serviceRecord.deleteRecord(item._id)
-      fetchRecords()
-    } catch (error) {
-      snackbar.showMessage('刪除失敗')
-    }
+const deleteDialog = ref(false)
+const pendingDeleteItem = ref(null)
+const isDeleting = ref(false)
+
+const deleteItem = (item) => {
+  pendingDeleteItem.value = item
+  deleteDialog.value = true
+}
+
+const confirmDelete = async () => {
+  isDeleting.value = true
+  try {
+    await serviceRecord.deleteRecord(pendingDeleteItem.value._id)
+    fetchRecords()
+    deleteDialog.value = false
+    snackbar.showMessage('刪除成功', 'success')
+  } catch (error) {
+    snackbar.showMessage('刪除失敗', 'error')
+  } finally {
+    isDeleting.value = false
   }
 }
 
