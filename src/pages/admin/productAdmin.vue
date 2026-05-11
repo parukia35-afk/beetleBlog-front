@@ -2,11 +2,13 @@
   <v-container fluid>
     <v-row>
       <v-col cols="12">
+        <!-- 管理主畫面 -->
         <v-card border flat class="rounded-lg">
           <v-card-title class="d-flex align-center py-4 px-6">
             <v-icon icon="mdi-shopping" color="primary" class="mr-2" />
             <span class="text-h5 font-weight-black">商品管理</span>
             <v-spacer />
+            <!-- 搜尋框 -->
             <v-text-field
               v-model="search"
               prepend-inner-icon="mdi-magnify"
@@ -17,18 +19,18 @@
               class="mr-4"
               style="max-width: 300px"
             />
+            <!-- 新增按鈕 -->
             <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog(null)">
               新增商品
             </v-btn>
           </v-card-title>
-
           <v-divider />
-
+          <!-- 商品總覽表格 -->
           <v-data-table
             :headers="headers"
             :items="products"
             :search="search"
-            :loading="loading"
+            :loading="isFetching"
             hover
             class="product-table"
           >
@@ -72,7 +74,7 @@
         </v-card>
       </v-col>
     </v-row>
-
+    <!-- 新增/編輯商品視窗 -->
     <v-dialog v-model="dialog" max-width="700px" persistent>
       <v-card class="rounded-xl">
         <v-card-title class="pa-6 font-weight-bold text-h5">
@@ -157,12 +159,21 @@
         <v-card-actions class="pa-6 pt-0">
           <v-spacer />
           <v-btn variant="text" @click="dialog = false">取消</v-btn>
-          <v-btn color="primary" variant="flat" :loading="submitting" @click="submit">
+          <v-btn color="primary" variant="flat" :loading="isSubmitting" @click="submit">
             確認儲存
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <!-- 確認刪除彈窗 -->
+    <ConfirmDialog
+      v-model="deleteDialog"
+      title="確認刪除？"
+      :message="`確定要刪除商品 ${pendingDeleteItem?.name} 嗎？`"
+      confirmColor="red"
+      :loading="isDeleting"
+      @confirm="confirmDelete"
+    />
   </v-container>
 </template>
 
@@ -173,16 +184,9 @@ import { useSnackbarStore } from '@/stores/snackbar'
 
 const snackbar = useSnackbarStore()
 
-// --- 狀態管理 ---
-const loading = ref(false)
-const submitting = ref(false)
-const dialog = ref(false)
+// ====================通用狀態管理====================
 const search = ref('')
-const products = ref([])
-const editedId = ref(null)
-const formRef = ref(null)
-
-// --- 設定檔 ---
+// ====================靜態資料====================
 const headers = [
   { title: '圖片', key: 'image', sortable: false },
   { title: '商品名稱', key: 'name', sortable: true },
@@ -198,6 +202,32 @@ const rules = {
   required: (v) => !!v || '此欄位必填'
 }
 
+// ====================讀取====================
+
+const products = ref([])
+const isFetching = ref(false)
+const fetchError = ref(false)
+
+const fetchAllProducts = async () => {
+  isFetching.value = true
+  fetchError.value = false
+  try {
+    const { data } = await serviceProduct.fetchAllProducts()
+    products.value = data.result
+  } catch (error) {
+    fetchError.value = true
+  } finally {
+    isFetching.value = false
+  }
+}
+
+// ====================新增/編輯====================
+const dialog = ref(false)
+const editedId = ref(null)
+const isSubmitting = ref(false)
+const formRef = ref(null)
+
+// 預設新表單(不會被覆蓋，以免汙染)
 const initialForm = {
   name: '',
   price: 0,
@@ -210,25 +240,12 @@ const initialForm = {
 
 const form = reactive({ ...initialForm })
 
-// --- 函式邏輯 ---
-
-// 1. 取得商品清單
-const fetchAllProducts = async () => {
-  loading.value = true
-  try {
-    const { data } = await serviceProduct.fetchAllProducts()
-    products.value = data.result
-  } catch (error) {
-    snackbar.showMessage('商品載入失敗')
-  }
-  loading.value = false
-}
-
-// 2. 開啟彈窗
+// 開啟新增/編輯彈窗
 const openDialog = (item) => {
   if (item) {
     editedId.value = item._id
-    Object.assign(form, item) // 同步所有欄位(包含 imageUrl)
+    const { name, price, description, category, sell, imageUrl } = item
+    Object.assign(form, { name, price, description, category, sell, imageUrl })
     form.image = null // 檔案輸入框重置為空
   } else {
     editedId.value = null
@@ -237,12 +254,12 @@ const openDialog = (item) => {
   dialog.value = true
 }
 
-// 3. 提交資料 (新增/更新)
+// 提交表單
 const submit = async () => {
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
-  submitting.value = true
+  isSubmitting.value = true
 
   // 使用 FormData 包裝包含檔案的資料
   const fd = new FormData()
@@ -256,7 +273,6 @@ const submit = async () => {
     // 這行是保險機制：如果是陣列就拿第一個 File，不是就直接用
     const file = Array.isArray(form.image) ? form.image[0] : form.image
     fd.append('image', file)
-    console.log('確認有把檔案塞進 FormData:', file)
   }
 
   try {
@@ -265,24 +281,36 @@ const submit = async () => {
     } else {
       await serviceProduct.createProduct(fd)
     }
-    await fetchAllProducts() // 重新拉取最新資料
+    await fetchAllProducts()
     dialog.value = false
   } catch (error) {
     snackbar.showMessage(error.response?.data?.message || '儲存失敗')
+  } finally {
+    isSubmitting.value = false
   }
-  submitting.value = false
 }
 
-// 4. 刪除商品
-const deleteItem = async (item) => {
-  if (confirm(`確定要刪除商品 ${item.name} 嗎？`)) {
-    try {
-      await serviceProduct.deleteProduct(item._id)
-      await fetchAllProducts()
-      snackbar.showMessage('刪除成功')
-    } catch (error) {
-      snackbar.showMessage('刪除失敗')
-    }
+// ====================刪除====================
+const deleteDialog = ref(false)
+const pendingDeleteItem = ref(null)
+const isDeleting = ref(false)
+
+const deleteItem = (item) => {
+  pendingDeleteItem.value = item
+  deleteDialog.value = true
+}
+
+const confirmDelete = async () => {
+  isDeleting.value = true
+  try {
+    await serviceProduct.deleteProduct(pendingDeleteItem.value._id)
+    await fetchAllProducts()
+    deleteDialog.value = false
+    snackbar.showMessage('刪除成功', 'success')
+  } catch (error) {
+    snackbar.showMessage('刪除失敗', 'error')
+  } finally {
+    isDeleting.value = false
   }
 }
 

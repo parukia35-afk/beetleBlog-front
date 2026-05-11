@@ -11,7 +11,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppEmptyState: typeof import('./src/components/app/AppEmptyState.vue')['default']
     CommentSection: typeof import('./src/components/CommentSection.vue')['default']
+    ConfirmDialog: typeof import('./src/components/app/ConfirmDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TiptapEditor: typeof import('./src/components/TiptapEditor.vue')['default']
