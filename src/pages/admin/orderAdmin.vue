@@ -1,12 +1,14 @@
 <template>
   <v-container fluid>
+    <!-- 管理主畫面 -->
     <v-card border flat class="rounded-lg">
       <v-card-title class="pa-6 d-flex align-center">
         <v-icon icon="mdi-file-document" color="primary" class="mr-2" />
         <span class="text-h5 font-weight-black">訂單管理系統</span>
       </v-card-title>
-
-      <v-data-table :headers="headers" :items="orders" :loading="loading" show-expand>
+      <v-divider />
+      <!-- 訂單總覽 -->
+      <v-data-table :headers="headers" :items="orders" :loading="isFetching" show-expand>
         <template #[`item.status`]="{ item }">
           <v-chip :color="statusConfig[item.status]" size="small" variant="flat">
             {{ item.status }}
@@ -100,9 +102,7 @@ import { useSnackbarStore } from '@/stores/snackbar'
 
 const snackbar = useSnackbarStore()
 
-const loading = ref(false)
-const orders = ref([])
-
+// ====================靜態資料====================
 const headers = [
   { title: '買家帳號', key: 'user.account' },
   { title: '下單時間', key: 'createdAt' },
@@ -112,7 +112,7 @@ const headers = [
   { title: '詳細', key: 'data-table-expand' }
 ]
 
-// 💡 對應字串的顏色配置
+// 對應字串的顏色配置
 const statusConfig = {
   待處理: 'orange',
   已確認: 'blue',
@@ -121,26 +121,34 @@ const statusConfig = {
   已取消: 'red'
 }
 
-// 💡 從 Model 的 enum 來的字串陣列
 const statusOptions = ['待處理', '已確認', '已出貨', '已完成', '已取消']
 
+// ====================通用函式====================
 const calculateTotal = (items) => {
   return items.reduce((total, item) => {
     return total + (item.product?.price || 0) * item.quantity
   }, 0)
 }
 
+// ====================讀取====================
+const isFetching = ref(false)
+const fetchError = ref(false)
+const orders = ref([])
+
 const fetchOrders = async () => {
-  loading.value = true
+  isFetching.value = true
   try {
     const { data } = await serviceOrder.getAllOrders()
     orders.value = data.result
   } catch (error) {
-    snackbar.showMessage('讀取訂單資料失敗')
+    fetchError.value = true
+    snackbar.showMessage('讀取訂單資料失敗', 'error')
+  } finally {
+    isFetching.value = false
   }
-  loading.value = false
 }
 
+// ====================變更訂單狀態====================
 const updateStatus = async (id, newStatus) => {
   try {
     await serviceOrder.updateStatus(id, { status: newStatus })
