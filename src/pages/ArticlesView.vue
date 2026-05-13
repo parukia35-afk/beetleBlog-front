@@ -72,7 +72,7 @@
               :to="'/articles/' + article._id"
             >
               <div class="d-flex flex-column flex-sm-row">
-                <v-img class="flex-shrink-0" cover height="200" :src="article.imageUrl" width="300">
+                <v-img class="flex-shrink-0 mx-auto mx-sm-0" cover  width="300" max-width="300" height="200" :src="article.imageUrl">
                   <v-chip
                     :color="article.isCompleted === '已完成' ? 'success' : 'orange'"
                     size="x-small"
