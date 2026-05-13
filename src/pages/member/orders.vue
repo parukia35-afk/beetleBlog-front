@@ -7,12 +7,25 @@
         </h1>
       </v-col>
 
-      <v-col v-if="orders.length === 0" cols="12" class="text-center py-10">
-        <v-icon size="80" color="grey-lighten-2">mdi-clipboard-text-off-outline</v-icon>
-        <p class="text-h6 text-grey mt-4">尚無任何購買紀錄</p>
-        <v-btn color="primary" variant="flat" class="mt-4" to="/shop">前往商店逛逛</v-btn>
+      <!-- 骨架屏 -->
+      <v-col v-if="isFetching" cols="12" class="d-flex flex-column align-center py-10">
+        <v-progress-circular indeterminate color="primary" size="48" />
+        <div class="py-10">頁面載入中，請稍後。</div>
       </v-col>
-
+      <!-- 連線異常 -->
+      <v-col v-else-if="fetchError" cols="12">
+        <AppEmptyState variant="error" @action="fetchMyOrders" />
+      </v-col>
+      <!-- 空資料 -->
+      <v-col v-else-if="orders.length === 0" cols="12">
+        <AppEmptyState variant="empty">
+          <template #title>尚無任何購買紀錄</template>
+          <template #actions>
+            <v-btn color="primary" variant="flat" to="/shop">前往商店逛逛</v-btn>
+          </template>
+        </AppEmptyState>
+      </v-col>
+      <!-- 真實資料 -->
       <v-col
         v-else
         v-for="order in orders"
@@ -83,6 +96,7 @@
 import { ref, onMounted } from 'vue'
 import serviceOrder from '@/services/order'
 
+// ====================靜態資料====================
 const orders = ref([])
 const statusConfig = {
   待處理: 'orange',
@@ -92,16 +106,25 @@ const statusConfig = {
   已取消: 'red'
 }
 
+// ====================通用函式====================
 const calculateTotal = (items) => {
   return items.reduce((total, item) => total + (item.product?.price || 0) * item.quantity, 0)
 }
 
+// ====================讀取====================
+const isFetching = ref(true)
+const fetchError = ref(false)
+
 const fetchMyOrders = async () => {
+  isFetching.value = true
+  fetchError.value = false
   try {
-    const { data } = await serviceOrder.getMyOrders() // 💡 串接剛寫好的後端 API
+    const { data } = await serviceOrder.getMyOrders()
     orders.value = data.result
   } catch (error) {
-    console.error('抓取訂單失敗')
+    fetchError.value = true
+  } finally {
+    isFetching.value = false
   }
 }
 
