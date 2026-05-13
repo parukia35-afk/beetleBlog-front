@@ -24,12 +24,13 @@
         <v-card v-else v-for="post in posts" :key="post._id" border class="mb-8 pa-4 hover-card" flat>
           <div class="d-flex flex-column flex-sm-row gap-4">
             <v-img
-              class="flex-shrink-0"
+              class="flex-shrink-0  mx-auto mx-sm-0"
               cover
               max-height="250"
               rounded="lg"
               :src="post.imageUrl"
               width="300"
+              max-width="300"
             >
               <template #placeholder>
                 <v-row align="center" class="fill-height ma-0" justify="center">
