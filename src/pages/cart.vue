@@ -1,19 +1,26 @@
 <template>
   <v-container class="py-10">
     <h1 class="text-h4 font-weight-bold mb-8">購物車</h1>
-
+    <!-- 購物車內無商品 -->
     <v-row v-if="cart.cartItems.length === 0" justify="center">
-      <v-col cols="12" md="6" class="text-center py-10">
-        <v-icon size="100" color="grey-lighten-2" class="mb-4">mdi-cart-outline</v-icon>
-        <p class="text-h6 text-grey">你的購物車空空的，快去帶些甲蟲回家吧！</p>
-        <v-btn color="primary" variant="flat" class="mt-6" to="/shop" size="large" rounded="pill">
-          前往商店
-        </v-btn>
+      <v-col cols="12" md="6">
+        <AppEmptyState variant="empty">
+          <template #icon>
+            <v-icon size="100" color="grey-lighten-2" class="mb-4">mdi-cart-outline</v-icon>
+          </template>
+          <template #title>你的購物車空空的，快去帶些甲蟲回家吧！</template>
+          <template #actions>
+            <v-btn color="primary" variant="flat" to="/shop" size="large" rounded="pill">
+              前往商店
+            </v-btn>
+          </template>
+        </AppEmptyState>
       </v-col>
     </v-row>
-
+    <!-- 購物車內有商品 -->
     <v-row v-else>
       <v-col cols="12" lg="8">
+        <!-- 商品縮圖、數量、小計 -->
         <v-card border flat class="rounded-lg overflow-hidden">
           <v-table>
             <thead class="bg-grey-lighten-4">
@@ -75,7 +82,7 @@
           </v-table>
         </v-card>
       </v-col>
-
+      <!-- 訂單摘要、金額、備註等 -->
       <v-col cols="12" lg="4">
         <v-card border flat class="rounded-lg pa-6 sticky-top">
           <h2 class="text-h6 font-weight-bold mb-4">訂單摘要</h2>
@@ -112,7 +119,7 @@
             size="x-large"
             variant="flat"
             rounded="lg"
-            :loading="loading"
+            :loading="isSubmitting"
             @click="onCheckout"
           >
             確認結帳
@@ -126,32 +133,28 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useCartStore } from '@/stores/cart'
-import { useRouter } from 'vue-router'
 import serviceOrder from '@/services/order'
 import { useSnackbarStore } from '@/stores/snackbar'
 
 const snackbar = useSnackbarStore()
-
 const cart = useCartStore()
-const router = useRouter()
-const loading = ref(false)
-const orderNote = ref('')
+
+// ====================結帳====================
+const isSubmitting = ref(false)
+const orderNote = ref('') // 買家備註
 
 const onCheckout = async () => {
-  loading.value = true
+  isSubmitting.value = true
   try {
     await serviceOrder.createOrder({ note: orderNote.value })
-
     cart.cartItems = []
-
     snackbar.showMessage('感謝購買!訂單已成立。')
   } catch (error) {
-    console.log(error)
     snackbar.showMessage(error.response?.data?.message || '結帳發生錯誤')
   } finally {
-    loading.value = false
+    isSubmitting.value = false
   }
 }
 </script>
@@ -173,3 +176,15 @@ const onCheckout = async () => {
   }
 }
 </style>
+
+<!-- 
+業界正確處理購物車的做法是：
+購物車內的商品資料存在後端資料庫，每次變更都打 API，
+如此的好處是：
+- 換裝置、瀏覽器時，購物車的商品都還在且保持一樣。
+- 庫存可以即時鎖定，避免超賣。
+
+本專案的做法是將購物車的商品存入 Pinia，缺點是換裝置或瀏覽器的話購物車內的商品就不見了。
+不過有搭配 pinia-plugin-persistedstate 把資料存進 localStorage，至少頁面重開時商品不會消失。
+作為展示專案作品來說尚足夠，但仍需了解業界正確做法為何。
+-->
