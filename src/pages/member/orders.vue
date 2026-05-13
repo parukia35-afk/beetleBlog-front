@@ -7,7 +7,7 @@
         </h1>
       </v-col>
 
-      <!-- 骨架屏 -->
+      <!-- 載入指示器 -->
       <v-col v-if="isFetching" cols="12" class="d-flex flex-column align-center py-10">
         <v-progress-circular indeterminate color="primary" size="48" />
         <div class="py-10">頁面載入中，請稍後。</div>
